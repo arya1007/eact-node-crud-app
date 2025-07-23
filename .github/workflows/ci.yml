@@ -1,0 +1,54 @@
+name: Full Stack CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      web:
+        image: node:18
+        ports:
+          - 8080:8080
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install backend dependencies
+      working-directory: ./server
+      run: npm install
+
+    - name: Start backend in background
+      working-directory: ./server
+      run: |
+        nohup node index.js > output.log 2>&1 &
+        sleep 5
+
+    - name: Install frontend dependencies
+      working-directory: ./client
+      run: npm install
+
+    - name: Build frontend
+      working-directory: ./client
+      run: npm run build
+
+    - name: Install Playwright
+      run: npx playwright install --with-deps
+
+    - name: Run API tests
+      working-directory: ./server
+      run: npx jest
+
+    - name: Run UI tests
+      run: npx playwright test
